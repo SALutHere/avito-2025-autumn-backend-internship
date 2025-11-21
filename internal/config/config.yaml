@@ -1,1 +1,10 @@
-# TODO: fill in the config file
+env: "local" # local, dev, prod
+
+http_server:
+  port: 8080
+  read_timeout: 4s
+  write_timeout: 4s
+  idle_timeout: 60s
+
+postgres:
+  timeout: 4s
