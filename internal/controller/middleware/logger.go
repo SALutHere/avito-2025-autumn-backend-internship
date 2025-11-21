@@ -1,15 +1,18 @@
-package logger
+package middleware
 
 import (
 	"log/slog"
 	"time"
 
+	"github.com/SALutHere/avito-2025-autumn-backend-internship/pkg/logger"
 	"github.com/labstack/echo/v4"
 )
 
 func HTTPLogger() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
+			log := logger.L()
+
 			start := time.Now()
 
 			req := c.Request()
