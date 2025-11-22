@@ -1,29 +1,31 @@
 package server
 
 import (
-	"time"
-
+	"github.com/SALutHere/avito-2025-autumn-backend-internship/internal/config"
+	"github.com/SALutHere/avito-2025-autumn-backend-internship/internal/controller"
 	"github.com/SALutHere/avito-2025-autumn-backend-internship/internal/controller/middleware"
 	"github.com/labstack/echo/v4"
 	mw "github.com/labstack/echo/v4/middleware"
 )
 
 func NewHTTPServer(
-	readTimeout time.Duration,
-	writeTimeout time.Duration,
-	idleTimeout time.Duration,
-
+	teamCtrl *controller.TeamController,
+	userCtrl *controller.UserController,
+	prCtrl *controller.PRController,
 ) *echo.Echo {
+	cfg := config.C()
 	e := echo.New()
 
-	e.Server.ReadTimeout = readTimeout
-	e.Server.WriteTimeout = writeTimeout
-	e.Server.IdleTimeout = idleTimeout
+	e.Server.ReadTimeout = cfg.HTTPReadTimeout
+	e.Server.WriteTimeout = cfg.HTTPWriteTimeout
+	e.Server.IdleTimeout = cfg.HTTPIdleTimeout
 
 	e.Use(middleware.HTTPLogger())
 	e.Use(mw.Recover())
 
-	// TODO: register routes
+	controller.RegisterTeamRoutes(e, teamCtrl)
+	controller.RegisterUserRoutes(e, userCtrl)
+	controller.RegisterPRRoutes(e, prCtrl)
 
 	return e
 }

@@ -10,12 +10,15 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/SALutHere/avito-2025-autumn-backend-internship/internal/migrate"
-	"github.com/SALutHere/avito-2025-autumn-backend-internship/internal/server"
-	_ "github.com/lib/pq"
-
 	"github.com/SALutHere/avito-2025-autumn-backend-internship/internal/config"
+	"github.com/SALutHere/avito-2025-autumn-backend-internship/internal/controller"
+	"github.com/SALutHere/avito-2025-autumn-backend-internship/internal/migrate"
+	"github.com/SALutHere/avito-2025-autumn-backend-internship/internal/repository/postgres"
+	"github.com/SALutHere/avito-2025-autumn-backend-internship/internal/server"
+	"github.com/SALutHere/avito-2025-autumn-backend-internship/internal/service"
 	"github.com/SALutHere/avito-2025-autumn-backend-internship/pkg/logger"
+
+	_ "github.com/lib/pq"
 )
 
 func Run(configPath string) {
@@ -45,18 +48,31 @@ func Run(configPath string) {
 
 	log.Info("Connected to PostgreSQL")
 
-	// TODO: init repositories
+	// Initializing repositories
+	log.Info("Initializing repositories...")
+	teamRepo := postgres.NewTeamPostgres(db)
+	userRepo := postgres.NewUserPostgres(db)
+	prRepo := postgres.NewPRPostgres(db)
+	log.Info("Repositories are ready")
 
-	// TODO: init services
+	// Initializing services
+	log.Info("Initializing services...")
+	teamSvc := service.NewTeamService(teamRepo)
+	userSvc := service.NewUserService(userRepo, teamRepo)
+	prSvc := service.NewPRService(prRepo, userRepo, teamRepo)
+	log.Info("Services are ready")
 
-	// TODO: init controllers
+	// Initializing controllers
+	log.Info("Initializing controllers...")
+	teamCtrl := controller.NewTeamController(teamSvc, userSvc)
+	userCtrl := controller.NewUserController(userSvc, prSvc)
+	prCtrl := controller.NewPRController(prSvc)
+	log.Info("Controllers are ready")
 
 	// Initializing router
-	e := server.NewHTTPServer(
-		cfg.HTTPReadTimeout,
-		cfg.HTTPWriteTimeout,
-		cfg.HTTPIdleTimeout,
-	)
+	log.Info("Initializing router...")
+	e := server.NewHTTPServer(teamCtrl, userCtrl, prCtrl)
+	log.Info("Router is ready")
 
 	// Running server
 	log.Info("Server is running", slog.Int("port", cfg.HTTPPort))
