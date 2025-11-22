@@ -22,7 +22,7 @@ type Config struct {
 }
 
 type HTTPServer struct {
-	HTTPPort         int           `yaml:"address" env-default:"8080"`
+	HTTPPort         int           `yaml:"port" env-default:"8080"`
 	HTTPReadTimeout  time.Duration `yaml:"read_timeout" env-default:"4s"`
 	HTTPWriteTimeout time.Duration `yaml:"write_timeout" env-default:"4s"`
 	HTTPIdleTimeout  time.Duration `yaml:"idle_timeout" env-default:"60s"`
@@ -46,6 +46,8 @@ func Load(configPath string) *Config {
 		if _, err := os.Stat(configPath); err != nil {
 			log.Fatalf("config path does not exist: %s", configPath)
 		}
+
+		cfg = &Config{}
 
 		if err := cleanenv.ReadConfig(configPath, cfg); err != nil {
 			log.Fatalf("can not read config: %v", err)
