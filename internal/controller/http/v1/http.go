@@ -1,17 +1,18 @@
-package server
+package v1
 
 import (
 	"github.com/SALutHere/avito-2025-autumn-backend-internship/internal/config"
-	"github.com/SALutHere/avito-2025-autumn-backend-internship/internal/controller"
-	"github.com/SALutHere/avito-2025-autumn-backend-internship/internal/controller/middleware"
+	"github.com/SALutHere/avito-2025-autumn-backend-internship/internal/controller/http/v1/middleware"
+	"github.com/SALutHere/avito-2025-autumn-backend-internship/internal/controller/http/v1/routers"
+
 	"github.com/labstack/echo/v4"
 	mw "github.com/labstack/echo/v4/middleware"
 )
 
 func NewHTTPServer(
-	teamCtrl *controller.TeamController,
-	userCtrl *controller.UserController,
-	prCtrl *controller.PRController,
+	teamCtrl *routers.TeamController,
+	userCtrl *routers.UserController,
+	prCtrl *routers.PRController,
 ) *echo.Echo {
 	cfg := config.C()
 	e := echo.New()
@@ -23,9 +24,9 @@ func NewHTTPServer(
 	e.Use(middleware.HTTPLogger())
 	e.Use(mw.Recover())
 
-	controller.RegisterTeamRoutes(e, teamCtrl)
-	controller.RegisterUserRoutes(e, userCtrl)
-	controller.RegisterPRRoutes(e, prCtrl)
+	routers.RegisterTeamRoutes(e, teamCtrl)
+	routers.RegisterUserRoutes(e, userCtrl)
+	routers.RegisterPRRoutes(e, prCtrl)
 
 	return e
 }

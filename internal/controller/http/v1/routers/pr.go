@@ -1,4 +1,4 @@
-package controller
+package routers
 
 import (
 	"context"
@@ -46,7 +46,7 @@ func (h *PRController) Create(c echo.Context) error {
 	}
 
 	resp := dto.CreatePRResponse{
-		PR: toPullRequestDTO(pr),
+		PR: dto.ToPullRequestDTO(pr),
 	}
 
 	return c.JSON(http.StatusCreated, resp)
@@ -72,7 +72,7 @@ func (h *PRController) Merge(c echo.Context) error {
 	}
 
 	resp := dto.MergePRResponse{
-		PR: toPullRequestDTO(pr),
+		PR: dto.ToPullRequestDTO(pr),
 	}
 
 	return c.JSON(http.StatusOK, resp)
@@ -98,7 +98,7 @@ func (h *PRController) Reassign(c echo.Context) error {
 	}
 
 	resp := dto.ReassignReviewerResponse{
-		PR:         toPullRequestDTO(pr),
+		PR:         dto.ToPullRequestDTO(pr),
 		ReplacedBy: newID,
 	}
 

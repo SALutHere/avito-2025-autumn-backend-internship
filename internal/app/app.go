@@ -11,10 +11,10 @@ import (
 	"time"
 
 	"github.com/SALutHere/avito-2025-autumn-backend-internship/internal/config"
-	"github.com/SALutHere/avito-2025-autumn-backend-internship/internal/controller"
+	"github.com/SALutHere/avito-2025-autumn-backend-internship/internal/controller/http/v1"
+	"github.com/SALutHere/avito-2025-autumn-backend-internship/internal/controller/http/v1/routers"
 	"github.com/SALutHere/avito-2025-autumn-backend-internship/internal/migrate"
 	"github.com/SALutHere/avito-2025-autumn-backend-internship/internal/repository/postgres"
-	"github.com/SALutHere/avito-2025-autumn-backend-internship/internal/server"
 	"github.com/SALutHere/avito-2025-autumn-backend-internship/internal/service"
 	"github.com/SALutHere/avito-2025-autumn-backend-internship/pkg/logger"
 
@@ -64,14 +64,14 @@ func Run(configPath string) {
 
 	// Initializing controllers
 	log.Info("Initializing controllers...")
-	teamCtrl := controller.NewTeamController(teamSvc, userSvc)
-	userCtrl := controller.NewUserController(userSvc, prSvc)
-	prCtrl := controller.NewPRController(prSvc)
+	teamCtrl := routers.NewTeamController(teamSvc, userSvc)
+	userCtrl := routers.NewUserController(userSvc, prSvc)
+	prCtrl := routers.NewPRController(prSvc)
 	log.Info("Controllers are ready")
 
 	// Initializing router
 	log.Info("Initializing router...")
-	e := server.NewHTTPServer(teamCtrl, userCtrl, prCtrl)
+	e := v1.NewHTTPServer(teamCtrl, userCtrl, prCtrl)
 	log.Info("Router is ready")
 
 	// Running server

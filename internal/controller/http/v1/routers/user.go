@@ -1,4 +1,4 @@
-package controller
+package routers
 
 import (
 	"context"
@@ -50,7 +50,7 @@ func (h *UserController) SetIsActive(c echo.Context) error {
 	}
 
 	resp := dto.SetIsActiveUserResponse{
-		User: toUserDTO(user),
+		User: dto.ToUserDTO(user),
 	}
 
 	return c.JSON(http.StatusOK, resp)
@@ -77,7 +77,7 @@ func (h *UserController) GetReview(c echo.Context) error {
 
 	shorts := make([]dto.PullRequestShortDTO, 0, len(prs))
 	for _, pr := range prs {
-		shorts = append(shorts, toPullRequestShortDTO(pr))
+		shorts = append(shorts, dto.ToPullRequestShortDTO(pr))
 	}
 
 	resp := dto.GetReviewUserResponse{

@@ -1,12 +1,11 @@
-package controller
+package dto
 
 import (
 	"github.com/SALutHere/avito-2025-autumn-backend-internship/internal/domain"
-	"github.com/SALutHere/avito-2025-autumn-backend-internship/internal/dto"
 )
 
-func toUserDTO(u *domain.User) dto.UserDTO {
-	return dto.UserDTO{
+func ToUserDTO(u *domain.User) UserDTO {
+	return UserDTO{
 		UserID:   u.ID,
 		Username: u.Username,
 		TeamName: u.TeamName,
@@ -14,8 +13,8 @@ func toUserDTO(u *domain.User) dto.UserDTO {
 	}
 }
 
-func toPullRequestDTO(pr *domain.PullRequest) dto.PullRequestDTO {
-	return dto.PullRequestDTO{
+func ToPullRequestDTO(pr *domain.PullRequest) PullRequestDTO {
+	return PullRequestDTO{
 		PullRequestID:     pr.ID,
 		PullRequestName:   pr.Name,
 		AuthorID:          pr.AuthorID,
@@ -26,8 +25,8 @@ func toPullRequestDTO(pr *domain.PullRequest) dto.PullRequestDTO {
 	}
 }
 
-func toPullRequestShortDTO(pr domain.PullRequest) dto.PullRequestShortDTO {
-	return dto.PullRequestShortDTO{
+func ToPullRequestShortDTO(pr domain.PullRequest) PullRequestShortDTO {
+	return PullRequestShortDTO{
 		PullRequestID:   pr.ID,
 		PullRequestName: pr.Name,
 		AuthorID:        pr.AuthorID,
