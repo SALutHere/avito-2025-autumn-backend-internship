@@ -1,0 +1,28 @@
+services:
+  k6:
+    image: grafana/k6
+    depends_on:
+      - influxdb
+    entrypoint: ["k6", "run", "/scripts/test.js"]
+    volumes:
+      - ./load_tests:/scripts
+    environment:
+      - K6_OUT=influxdb=http://influxdb:8086/k6
+
+  influxdb:
+    image: influxdb:1.8
+    environment:
+      - INFLUXDB_DB=k6
+    ports:
+      - "8087:8086"
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3001:3000"
+    depends_on:
+      - influxdb
+    volumes:
+      - ./provisioning/dashboards:/etc/grafana/provisioning/dashboards
+      - ./provisioning/data:/etc/grafana/provisioning/data
+      - ./provisioning/datasources:/etc/grafana/provisioning/datasources
