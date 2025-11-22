@@ -7,6 +7,7 @@ tags:
   - name: Teams
   - name: Users
   - name: PullRequests
+  - name: Stats
   - name: Health
 
 components:
@@ -61,7 +62,7 @@ components:
           type: boolean
     Team:
       type: object
-      required: [ team_name, members]
+      required: [ team_name, members ]
       properties:
         team_name:
           type: string
@@ -83,7 +84,7 @@ components:
           type: boolean
     PullRequest:
       type: object
-      required: [ pull_request_id, pull_request_name, author_id, status, assigned_reviewers]
+      required: [ pull_request_id, pull_request_name, author_id, status, assigned_reviewers ]
       properties:
         pull_request_id:
           type: string
@@ -109,7 +110,7 @@ components:
           nullable: true
     PullRequestShort:
       type: object
-      required: [ pull_request_id, pull_request_name, author_id, status]
+      required: [ pull_request_id, pull_request_name, author_id, status ]
       properties:
         pull_request_id:
           type: string
@@ -120,7 +121,47 @@ components:
         status:
           type: string
           enum: [OPEN, MERGED]
-
+    UserStats:
+      type: object
+      required: [ user_id, assignments ]
+      properties:
+        user_id:
+          type: string
+        assignments:
+          type: integer
+          minimum: 0
+    PRStats:
+      type: object
+      required: [ pull_request_id, reviewers ]
+      properties:
+        pull_request_id:
+          type: string
+        reviewers:
+          type: integer
+          minimum: 0
+    StatsResponse:
+      type: object
+      required: [ by_user, by_pr ]
+      properties:
+        by_user:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserStats'
+        by_pr:
+          type: array
+          items:
+            $ref: '#/components/schemas/PRStats'
+      example:
+        by_user:
+          - user_id: u1
+            assignments: 5
+          - user_id: u2
+            assignments: 3
+        by_pr:
+          - pull_request_id: pr-101
+            reviewers: 2
+          - pull_request_id: pr-102
+            reviewers: 1
 paths:
   /team/add:
     post:
@@ -419,3 +460,26 @@ paths:
                     pull_request_name: Add search
                     author_id: u1
                     status: OPEN
+  /stats:
+    get:
+      tags: [Stats]
+      summary: Получить агрегированную статистику назначений ревью
+      responses:
+        '200':
+          description: Статистические данные
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatsResponse'
+          # Optional real example:
+          example:
+            by_user:
+              - user_id: u1
+                assignments: 7
+              - user_id: u3
+                assignments: 2
+            by_pr:
+              - pull_request_id: pr-201
+                reviewers: 2
+              - pull_request_id: pr-144
+                reviewers: 1

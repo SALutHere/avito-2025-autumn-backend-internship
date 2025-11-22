@@ -53,6 +53,7 @@ func Run(configPath string) {
 	teamRepo := postgres.NewTeamPostgres(db)
 	userRepo := postgres.NewUserPostgres(db)
 	prRepo := postgres.NewPRPostgres(db)
+	statsRepo := postgres.NewStatsPostgres(db)
 	log.Info("Repositories are ready")
 
 	// Initializing services
@@ -60,6 +61,7 @@ func Run(configPath string) {
 	teamSvc := service.NewTeamService(teamRepo)
 	userSvc := service.NewUserService(userRepo, teamRepo)
 	prSvc := service.NewPRService(prRepo, userRepo, teamRepo)
+	statsSvc := service.NewStatsService(statsRepo)
 	log.Info("Services are ready")
 
 	// Initializing controllers
@@ -67,11 +69,12 @@ func Run(configPath string) {
 	teamCtrl := routers.NewTeamController(teamSvc, userSvc)
 	userCtrl := routers.NewUserController(userSvc, prSvc)
 	prCtrl := routers.NewPRController(prSvc)
+	statsCtrl := routers.NewStatsController(statsSvc)
 	log.Info("Controllers are ready")
 
 	// Initializing router
 	log.Info("Initializing router...")
-	e := v1.NewHTTPServer(teamCtrl, userCtrl, prCtrl)
+	e := v1.NewHTTPServer(teamCtrl, userCtrl, prCtrl, statsCtrl)
 	log.Info("Router is ready")
 
 	// Running server

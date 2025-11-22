@@ -13,6 +13,7 @@ func NewHTTPServer(
 	teamCtrl *routers.TeamController,
 	userCtrl *routers.UserController,
 	prCtrl *routers.PRController,
+	statsCtrl *routers.StatsController,
 ) *echo.Echo {
 	cfg := config.C()
 	e := echo.New()
@@ -27,6 +28,7 @@ func NewHTTPServer(
 	routers.RegisterTeamRoutes(e, teamCtrl)
 	routers.RegisterUserRoutes(e, userCtrl)
 	routers.RegisterPRRoutes(e, prCtrl)
+	routers.RegisterStatsRoutes(e, statsCtrl)
 
 	return e
 }
