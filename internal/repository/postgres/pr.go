@@ -4,10 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"log/slog"
 	"time"
 
 	"github.com/SALutHere/avito-2025-autumn-backend-internship/internal/domain"
 	"github.com/SALutHere/avito-2025-autumn-backend-internship/internal/repository"
+	"github.com/SALutHere/avito-2025-autumn-backend-internship/pkg/logger"
 )
 
 type PRPostgres struct {
@@ -19,29 +21,42 @@ func NewPRPostgres(db *sql.DB) repository.PRRepository {
 }
 
 func (r *PRPostgres) Create(ctx context.Context, pr *domain.PullRequest) error {
+	log := logger.L()
+
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
+		log.Error("failed to begin transaction", slog.Any("err", err))
 		return err
 	}
 
-	_, err = tx.ExecContext(ctx, `
+	q := `
         INSERT INTO pull_requests (id, name, author_id, status, created_at, merged_at)
         VALUES ($1, $2, $3, $4, $5, $6)
-    `,
+    `
+	_, err = tx.ExecContext(ctx, q,
 		pr.ID, pr.Name, pr.AuthorID, pr.Status, pr.CreatedAt, pr.MergedAt,
 	)
 	if err != nil {
 		tx.Rollback()
+		log.Error("failed to execute SQL",
+			slog.String("query", q),
+			slog.Any("err", err),
+		)
 		return err
 	}
 
+	q = `
+        INSERT INTO pull_request_reviewers (pr_id, reviewer_id)
+        VALUES ($1, $2)
+	`
 	for _, reviewer := range pr.AssignedReviewers {
-		_, err = tx.ExecContext(ctx, `
-            INSERT INTO pull_request_reviewers (pr_id, reviewer_id)
-            VALUES ($1, $2)
-        `, pr.ID, reviewer)
+		_, err = tx.ExecContext(ctx, q, pr.ID, reviewer)
 		if err != nil {
 			tx.Rollback()
+			log.Error("failed to execute SQL",
+				slog.String("query", q),
+				slog.Any("err", err),
+			)
 			return err
 		}
 	}
@@ -50,9 +65,12 @@ func (r *PRPostgres) Create(ctx context.Context, pr *domain.PullRequest) error {
 }
 
 func (r *PRPostgres) Exists(ctx context.Context, id string) (bool, error) {
-	row := r.db.QueryRowContext(ctx, `
+	log := logger.L()
+
+	q := `
         SELECT 1 FROM pull_requests WHERE id = $1
-    `, id)
+    `
+	row := r.db.QueryRowContext(ctx, q, id)
 
 	var dummy int
 	err := row.Scan(&dummy)
@@ -60,17 +78,24 @@ func (r *PRPostgres) Exists(ctx context.Context, id string) (bool, error) {
 		return false, nil
 	}
 	if err != nil {
+		log.Error("failed to execute SQL",
+			slog.String("query", q),
+			slog.Any("err", err),
+		)
 		return false, err
 	}
 	return true, nil
 }
 
 func (r *PRPostgres) GetByID(ctx context.Context, id string) (*domain.PullRequest, error) {
-	row := r.db.QueryRowContext(ctx, `
+	log := logger.L()
+
+	q := `
         SELECT id, name, author_id, status, created_at, merged_at
         FROM pull_requests
         WHERE id = $1
-    `, id)
+    `
+	row := r.db.QueryRowContext(ctx, q, id)
 
 	var pr domain.PullRequest
 	if err := row.Scan(
@@ -84,14 +109,23 @@ func (r *PRPostgres) GetByID(ctx context.Context, id string) (*domain.PullReques
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrPRNotFound
 		}
+		log.Error("failed to execute SQL",
+			slog.String("query", q),
+			slog.Any("err", err),
+		)
 		return nil, err
 	}
 
-	rows, err := r.db.QueryContext(ctx, `
+	q = `
         SELECT reviewer_id FROM pull_request_reviewers
         WHERE pr_id = $1
-    `, id)
+    `
+	rows, err := r.db.QueryContext(ctx, q, id)
 	if err != nil {
+		log.Error("failed to execute SQL",
+			slog.String("query", q),
+			slog.Any("err", err),
+		)
 		return nil, err
 	}
 	defer rows.Close()
@@ -110,13 +144,20 @@ func (r *PRPostgres) GetByID(ctx context.Context, id string) (*domain.PullReques
 }
 
 func (r *PRPostgres) ListByReviewer(ctx context.Context, reviewerID string) ([]domain.PullRequest, error) {
-	rows, err := r.db.QueryContext(ctx, `
+	log := logger.L()
+
+	q := `
         SELECT pr.id, pr.name, pr.author_id, pr.status, pr.created_at, pr.merged_at
         FROM pull_requests pr
         JOIN pull_request_reviewers r ON pr.id = r.pr_id
         WHERE r.reviewer_id = $1
-    `, reviewerID)
+    `
+	rows, err := r.db.QueryContext(ctx, q, reviewerID)
 	if err != nil {
+		log.Error("failed to execute SQL",
+			slog.String("query", q),
+			slog.Any("err", err),
+		)
 		return nil, err
 	}
 	defer rows.Close()
@@ -149,26 +190,38 @@ func (r *PRPostgres) ListByReviewer(ctx context.Context, reviewerID string) ([]d
 }
 
 func (r *PRPostgres) UpdateReviewers(ctx context.Context, prID string, reviewers []string) error {
+	log := logger.L()
+
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
 
-	_, err = tx.ExecContext(ctx, `
+	q := `
         DELETE FROM pull_request_reviewers WHERE pr_id = $1
-    `, prID)
+    `
+	_, err = tx.ExecContext(ctx, q, prID)
 	if err != nil {
 		tx.Rollback()
+		log.Error("failed to execute SQL",
+			slog.String("query", q),
+			slog.Any("err", err),
+		)
 		return err
 	}
 
 	for _, rid := range reviewers {
-		_, err = tx.ExecContext(ctx, `
+		q = `
             INSERT INTO pull_request_reviewers (pr_id, reviewer_id)
             VALUES ($1, $2)
-        `, prID, rid)
+        `
+		_, err = tx.ExecContext(ctx, q, prID, rid)
 		if err != nil {
 			tx.Rollback()
+			log.Error("failed to execute SQL",
+				slog.String("query", q),
+				slog.Any("err", err),
+			)
 			return err
 		}
 	}
@@ -182,22 +235,38 @@ func (r *PRPostgres) UpdateStatusAndMergedAt(
 	status domain.PRStatus,
 	mergedAt *time.Time,
 ) error {
-	_, err := r.db.ExecContext(ctx, `
+	log := logger.L()
+
+	q := `
         UPDATE pull_requests
         SET status = $2, merged_at = $3
         WHERE id = $1
-    `,
+    `
+	_, err := r.db.ExecContext(ctx, q,
 		id, status, mergedAt,
 	)
+	if err != nil {
+		log.Error("failed to execute SQL",
+			slog.String("query", q),
+			slog.Any("err", err),
+		)
+	}
 	return err
 }
 
 func (r *PRPostgres) fetchReviewers(ctx context.Context, prID string) ([]string, error) {
-	rows, err := r.db.QueryContext(ctx, `
+	log := logger.L()
+
+	q := `
         SELECT reviewer_id FROM pull_request_reviewers
         WHERE pr_id = $1
-    `, prID)
+    `
+	rows, err := r.db.QueryContext(ctx, q, prID)
 	if err != nil {
+		log.Error("failed to execute SQL",
+			slog.String("query", q),
+			slog.Any("err", err),
+		)
 		return nil, err
 	}
 	defer rows.Close()

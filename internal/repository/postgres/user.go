@@ -4,9 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"log/slog"
 
 	"github.com/SALutHere/avito-2025-autumn-backend-internship/internal/domain"
 	"github.com/SALutHere/avito-2025-autumn-backend-internship/internal/repository"
+	"github.com/SALutHere/avito-2025-autumn-backend-internship/pkg/logger"
 )
 
 type UserPostgres struct {
@@ -18,17 +20,24 @@ func NewUserPostgres(db *sql.DB) repository.UserRepository {
 }
 
 func (r *UserPostgres) GetByID(ctx context.Context, id string) (*domain.User, error) {
-	row := r.db.QueryRowContext(ctx, `
+	log := logger.L()
+
+	q := `
         SELECT id, username, team_name, is_active
         FROM users
         WHERE id = $1
-    `, id)
+    `
+	row := r.db.QueryRowContext(ctx, q, id)
 
 	var u domain.User
 	if err := row.Scan(&u.ID, &u.Username, &u.TeamName, &u.IsActive); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrUserNotFound
 		}
+		log.Error("failed to execute SQL",
+			slog.String("query", q),
+			slog.Any("err", err),
+		)
 		return nil, err
 	}
 
@@ -36,12 +45,19 @@ func (r *UserPostgres) GetByID(ctx context.Context, id string) (*domain.User, er
 }
 
 func (r *UserPostgres) ListActiveByTeam(ctx context.Context, teamName string) ([]domain.User, error) {
-	rows, err := r.db.QueryContext(ctx, `
+	log := logger.L()
+
+	q := `
         SELECT id, username, team_name, is_active
         FROM users
         WHERE team_name = $1 AND is_active = TRUE
-    `, teamName)
+    `
+	rows, err := r.db.QueryContext(ctx, q, teamName)
 	if err != nil {
+		log.Error("failed to execute SQL",
+			slog.String("query", q),
+			slog.Any("err", err),
+		)
 		return nil, err
 	}
 	defer rows.Close()
@@ -60,12 +76,19 @@ func (r *UserPostgres) ListActiveByTeam(ctx context.Context, teamName string) ([
 }
 
 func (r *UserPostgres) ListByTeam(ctx context.Context, teamName string) ([]domain.User, error) {
-	rows, err := r.db.QueryContext(ctx, `
+	log := logger.L()
+
+	q := `
         SELECT id, username, team_name, is_active
         FROM users
         WHERE team_name = $1
-    `, teamName)
+    `
+	rows, err := r.db.QueryContext(ctx, q, teamName)
 	if err != nil {
+		log.Error("failed to execute SQL",
+			slog.String("query", q),
+			slog.Any("err", err),
+		)
 		return nil, err
 	}
 	defer rows.Close()
@@ -84,10 +107,17 @@ func (r *UserPostgres) ListByTeam(ctx context.Context, teamName string) ([]domai
 }
 
 func (r *UserPostgres) SetIsActive(ctx context.Context, id string, isActive bool) (*domain.User, error) {
-	_, err := r.db.ExecContext(ctx, `
+	log := logger.L()
+
+	q := `
         UPDATE users SET is_active = $2 WHERE id = $1
-    `, id, isActive)
+    `
+	_, err := r.db.ExecContext(ctx, q, id, isActive)
 	if err != nil {
+		log.Error("failed to execute SQL",
+			slog.String("query", q),
+			slog.Any("err", err),
+		)
 		return nil, err
 	}
 
@@ -95,15 +125,26 @@ func (r *UserPostgres) SetIsActive(ctx context.Context, id string, isActive bool
 }
 
 func (r *UserPostgres) Upsert(ctx context.Context, user *domain.User) error {
-	_, err := r.db.ExecContext(ctx, `
+	log := logger.L()
+
+	q := `
         INSERT INTO users (id, username, team_name, is_active)
         VALUES ($1, $2, $3, $4)
         ON CONFLICT (id) DO UPDATE SET
             username = EXCLUDED.username,
             team_name = EXCLUDED.team_name,
             is_active = EXCLUDED.is_active
-    `,
+    `
+	_, err := r.db.ExecContext(ctx, q,
 		user.ID, user.Username, user.TeamName, user.IsActive,
 	)
+
+	if err != nil {
+		log.Error("failed to execute SQL",
+			slog.String("query", q),
+			slog.Any("err", err),
+		)
+	}
+
 	return err
 }
